@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   TextInput,
@@ -15,7 +15,14 @@ const LoginScreen = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isMounted, setIsMounted] = useState(false); // to check if component is mounted
   const navigation = useNavigation();
+
+  // Handle component mount/unmount safely
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   // ✅ Manual JWT decoder
   const decodeJWT = (token) => {
@@ -35,7 +42,10 @@ const LoginScreen = () => {
     }
   };
 
+  // Handle login logic
   const handleLogin = async () => {
+    if (!isMounted) return; // Avoid setting state if component is unmounted
+
     setLoading(true);
     setError('');
 
@@ -53,19 +63,19 @@ const LoginScreen = () => {
         const decoded = decodeJWT(accessToken);
         console.log('Decoded JWT:', decoded);
 
-        // Navigate to Home screen
+        // Navigate to Home screen after decoding the JWT
         navigation.reset({
-            index: 0,
-            routes: [
-                {
-                name: 'Home',
-                params: {
-                    userId: decoded.user_id,
-                    name: decoded.name,
-                    role: decoded.role,
-                },
-                },
-            ],
+          index: 0,
+          routes: [
+            {
+              name: 'Home',
+              params: {
+                userId: decoded.user_id,
+                name: decoded.name,
+                role: decoded.role,
+              },
+            },
+          ],
         });
 
       } else {
@@ -79,9 +89,11 @@ const LoginScreen = () => {
       } else {
         setError('Login failed: ' + err.message);
       }
+    } finally {
+      if (isMounted) {
+        setLoading(false);
+      }
     }
-
-    setLoading(false);
   };
 
   return (
